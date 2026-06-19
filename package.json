@@ -2,14 +2,50 @@
   "name": "@pryv/adapter-calendar",
   "version": "0.0.1",
   "description": "Calendar adapter for Pryv.io accounts — iCal subscription feed and external calendar ingest.",
-  "license": "BSD-3-Clause",
-  "author": "Pryv S.A. <info@pryv.com> (https://pryv.com)",
   "homepage": "https://github.com/pryv/adapter-calendar",
+  "bugs": {
+    "url": "https://github.com/pryv/adapter-calendar/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pryv/adapter-calendar.git"
   },
-  "bugs": {
-    "url": "https://github.com/pryv/adapter-calendar/issues"
+  "license": "BSD-3-Clause",
+  "author": "Pryv S.A. <info@pryv.com> (https://pryv.com)",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "license": "source-licenser --config-file .licenser.yml ./",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "start": "node src/index.ts",
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "eslint": "^9.18.0",
+    "globals": "^15.14.0",
+    "neostandard": "^0.12.0",
+    "source-licenser": "^2.0.5",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.20.0"
+  },
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

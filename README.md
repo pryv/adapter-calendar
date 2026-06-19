@@ -27,6 +27,24 @@ Two directions:
 The adapter holds no canonical user data. Per-user mapping configuration lives on the
 user's own Pryv account as ordinary events, fetched on each request.
 
+## Development
+
+TypeScript on Node.js ≥ 24, pure ESM. Node runs the `.ts` sources directly via native
+type stripping, so there is no build step in the dev/test loop.
+[`just`](https://github.com/casey/just) is the task runner; every recipe also has an
+equivalent npm script.
+
+```sh
+just install     # npm install
+just lint        # eslint
+just typecheck   # tsc --noEmit
+just test        # node --test
+just build       # compile to dist/
+just start       # run from source
+```
+
+See [AGENTS.md](AGENTS.md) for the full conventions.
+
 ## License
 
-[BSD-3-Clause](LICENSE)
+[BSD-3-Clause](https://github.com/pryv/adapter-calendar/blob/master/LICENSE)
