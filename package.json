@@ -32,9 +32,12 @@
     "license": "source-licenser --config-file .licenser.yml ./",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "start": "node src/index.ts",
+    "start": "node src/server.ts",
     "test": "node --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "pryv": "^3.7.1"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

@@ -29,9 +29,9 @@ test *params:
 build:
     tsc -p tsconfig.build.json
 
-# Run the adapter from source (Node strips types natively)
+# Run the feed server from source (Node strips types natively)
 start *params:
-    node src/index.ts {{params}}
+    node src/server.ts {{params}}
 
 # Apply source license headers
 license:

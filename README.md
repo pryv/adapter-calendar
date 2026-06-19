@@ -40,8 +40,23 @@ just lint        # eslint
 just typecheck   # tsc --noEmit
 just test        # node --test
 just build       # compile to dist/
-just start       # run from source
+just start       # run the feed server from source
 ```
+
+### Running the feed server
+
+`just start` serves `GET /<prefix>/<envelope>.ics`. Configuration is read from the
+environment:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `PORT` | `3010` | TCP port to listen on |
+| `ROUTE_PREFIX` | `cal` | first path segment, e.g. `/cal/<envelope>.ics` |
+| `AES_KEY_BASE64` | — | base64 of a 32-byte key; required to serve sealed (`s`) URLs |
+
+The `<envelope>` segment carries the user's Pryv apiEndpoint and mapping id (plaintext
+or sealed AES-256-GCM). Every subscription URL is kept under Google Calendar's ~225-char
+limit — see [docs/url-length-constraints.md](docs/url-length-constraints.md).
 
 See [AGENTS.md](AGENTS.md) for the full conventions.
 

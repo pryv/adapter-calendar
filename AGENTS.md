@@ -51,8 +51,16 @@ an npm script, so `npm run <name>` works too.
 ## Layout
 
 ```
-src/            TypeScript sources
+src/ical/       RFC 5545 serializer (pure)
+src/feed/       envelope codec, mapping model, request handler (pure/injected)
+src/pryv/       Pryv client port (types.ts) + lib-js implementation (client.ts)
+src/server.ts   node:http feed server
 test/           Node test-runner specs (*.test.ts)
+docs/           design notes (e.g. url-length-constraints.md)
 dist/           Build output (generated, gitignored)
 .licenser.yml   License-header configuration
 ```
+
+The only module that imports `pryv` (lib-js) is `src/pryv/client.ts`; everything else
+depends on the `PryvClient` interface in `src/pryv/types.ts`, so the handler and server
+are unit-tested without a network.
