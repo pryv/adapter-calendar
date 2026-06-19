@@ -12,7 +12,7 @@
 import { decodeEnvelope, EnvelopeError } from './envelope.ts';
 import { parseMapping, sourceToQuery, eventToCalendarEvent } from './mapping.ts';
 import { serializeCalendar } from '../ical/serialize.ts';
-import type { PryvClientFactory } from '../pryv/types.ts';
+import type { PryvReaderFactory } from '../pryv/types.ts';
 
 /** Runtime configuration for the handler. */
 export interface FeedConfig {
@@ -43,7 +43,7 @@ function plain (status: number, body: string): FeedResponse {
 export async function handleFeed (
   envelope: string,
   config: FeedConfig,
-  makeClient: PryvClientFactory
+  makeClient: PryvReaderFactory
 ): Promise<FeedResponse> {
   let decoded;
   try {

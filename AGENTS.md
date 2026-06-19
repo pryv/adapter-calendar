@@ -52,9 +52,10 @@ an npm script, so `npm run <name>` works too.
 
 ```
 src/ical/       RFC 5545 serializer (pure)
-src/feed/       envelope codec, mapping model, request handler (pure/injected)
+src/feed/       envelope codec, mapping model, feed request handler (pure/injected)
+src/ui/         mapping-creation handler + static web UI (assets/)
 src/pryv/       Pryv client port (types.ts) + lib-js implementation (client.ts)
-src/server.ts   node:http feed server
+src/server.ts   node:http server (feed + UI routes)
 test/           Node test-runner specs (*.test.ts)
 docs/           design notes (e.g. url-length-constraints.md)
 dist/           Build output (generated, gitignored)

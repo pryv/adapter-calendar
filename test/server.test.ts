@@ -15,7 +15,8 @@ const client: PryvClientFactory = () => ({
   async getMapping () { return { target: { summary: '{content}' } }; },
   async getEvents () {
     return [{ id: 'e1', streamIds: ['body'], type: 'mass/kg', time: 1_750_000_000, content: 82.4, modified: 1_750_000_000 }];
-  }
+  },
+  async createMapping () { return { id: 'created-1' }; }
 });
 
 function listen (server: Server): Promise<number> {
@@ -68,5 +69,39 @@ test('a non-GET method returns 405', async () => {
 test('a malformed envelope returns 400', async () => {
   await withServer(async (port) => {
     assert.equal((await fetch(`http://localhost:${port}/cal/xbad.ics`)).status, 400);
+  });
+});
+
+test('serves the UI at /', async () => {
+  await withServer(async (port) => {
+    const res = await fetch(`http://localhost:${port}/`);
+    assert.equal(res.status, 200);
+    assert.match(res.headers.get('content-type') ?? '', /text\/html/);
+    assert.match(await res.text(), /Pryv/);
+  });
+});
+
+test('POST /ui/mappings creates a mapping and returns a subscription URL', async () => {
+  await withServer(async (port) => {
+    const res = await fetch(`http://localhost:${port}/ui/mappings`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ apiEndpoint: 'https://token@user.pryv.me/', mapping: { source: { streams: ['body'] } } })
+    });
+    assert.equal(res.status, 200);
+    const data = await res.json() as { mappingId: string; url: string };
+    assert.equal(data.mappingId, 'created-1');
+    assert.match(data.url, new RegExp(`^http://localhost:${port}/cal/p.+\\.ics$`));
+  });
+});
+
+test('POST /ui/mappings rejects a bad body with 400', async () => {
+  await withServer(async (port) => {
+    const res = await fetch(`http://localhost:${port}/ui/mappings`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ mapping: {} })
+    });
+    assert.equal(res.status, 400);
   });
 });

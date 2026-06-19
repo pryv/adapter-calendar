@@ -36,16 +36,27 @@ export interface EventsQuery {
 }
 
 /**
- * The port the feed handler depends on: read a mapping-config event and fetch
- * source events from a single Pryv account (bound at construction time to one
- * apiEndpoint).
+ * Read side: what the feed handler needs from a single Pryv account (bound at
+ * construction time to one apiEndpoint).
  */
-export interface PryvClient {
+export interface PryvReader {
   /** Read the raw `content` of the mapping-config event by id. */
   getMapping (mappingId: string): Promise<unknown>;
   /** Fetch events matching the query. */
   getEvents (query: EventsQuery): Promise<PryvEvent[]>;
 }
 
-/** Builds a {@link PryvClient} bound to a single user's apiEndpoint. */
+/** Write side: what the mapping-creation UI needs. */
+export interface PryvWriter {
+  /** Persist a mapping config (ensuring its stream) and return the new event id. */
+  createMapping (mapping: unknown): Promise<{ id: string }>;
+}
+
+/** A Pryv account client (read + write). */
+export interface PryvClient extends PryvReader, PryvWriter {}
+
+/** Builds a read-only client bound to a single user's apiEndpoint. */
+export type PryvReaderFactory = (apiEndpoint: string) => PryvReader;
+
+/** Builds a full read/write client bound to a single user's apiEndpoint. */
 export type PryvClientFactory = (apiEndpoint: string) => PryvClient;

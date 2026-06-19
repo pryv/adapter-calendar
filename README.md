@@ -43,16 +43,25 @@ just build       # compile to dist/
 just start       # run the feed server from source
 ```
 
-### Running the feed server
+### Running the server
 
-`just start` serves `GET /<prefix>/<envelope>.ics`. Configuration is read from the
-environment:
+`just start` serves three routes:
+
+- `GET /<prefix>/<envelope>.ics` — the calendar subscription feed.
+- `GET /` — a small web UI to create a mapping and get its subscription URL.
+- `POST /ui/mappings` — create a mapping (used by the UI).
+
+Configuration is read from the environment:
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `PORT` | `3010` | TCP port to listen on |
 | `ROUTE_PREFIX` | `cal` | first path segment, e.g. `/cal/<envelope>.ics` |
 | `AES_KEY_BASE64` | — | base64 of a 32-byte key; required to serve sealed (`s`) URLs |
+| `PUBLIC_BASE_URL` | request host | base URL used when emitting subscription URLs |
+
+The browser only talks to this server; the server talks to Pryv. The user's apiEndpoint
+(with its token) stays server-side — only the encoded subscription URL is handed back.
 
 The `<envelope>` segment carries the user's Pryv apiEndpoint and mapping id (plaintext
 or sealed AES-256-GCM). Every subscription URL is kept under Google Calendar's ~225-char

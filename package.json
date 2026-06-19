@@ -28,7 +28,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && cp -R src/ui/assets dist/ui/",
     "license": "source-licenser --config-file .licenser.yml ./",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

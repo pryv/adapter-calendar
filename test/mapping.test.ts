@@ -37,8 +37,12 @@ test('render resolves a dot path into object content', () => {
 
 test('parseMapping rejects non-objects', () => {
   assert.throws(() => parseMapping(null), /must be an object/);
-  assert.throws(() => parseMapping('x'), /must be an object/);
   assert.deepEqual(parseMapping({ name: 'W' }), { name: 'W' });
+});
+
+test('parseMapping accepts a JSON-string content', () => {
+  assert.deepEqual(parseMapping('{"name":"W"}'), { name: 'W' });
+  assert.throws(() => parseMapping('not json'), /not valid JSON/);
 });
 
 test('sourceToQuery includes only non-empty filters', () => {

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pryv calendar adapter</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>Pryv → calendar feed</h1>
+    <p class="lead">
+      Turn selected Pryv events into a calendar subscription URL you can paste into
+      Apple Calendar, Google Calendar, Outlook or Thunderbird.
+    </p>
+
+    <form id="form">
+      <label>
+        Pryv apiEndpoint
+        <input name="apiEndpoint" type="url" placeholder="https://&lt;token&gt;@username.pryv.me/" required>
+        <small>Includes your access token. Stays on this server; only the encoded subscription URL is shared.</small>
+      </label>
+
+      <label>
+        Calendar name
+        <input name="name" type="text" placeholder="My weight">
+      </label>
+
+      <div class="row">
+        <label>
+          Streams <small>(comma-separated)</small>
+          <input name="streams" type="text" placeholder="body">
+        </label>
+        <label>
+          Types <small>(comma-separated)</small>
+          <input name="types" type="text" placeholder="mass/kg">
+        </label>
+      </div>
+
+      <label>
+        Summary template
+        <input name="summary" type="text" placeholder="{content} kg">
+        <small>Tokens: <code>{content}</code>, <code>{content.field}</code>, <code>{type}</code>, <code>{streamId}</code></small>
+      </label>
+
+      <div class="row">
+        <label class="check">
+          <input name="allDay" type="checkbox"> All-day entries
+        </label>
+        <label class="check">
+          <input name="sealed" type="checkbox"> Sealed URL (hides token)
+        </label>
+      </div>
+
+      <label id="ttlWrap" hidden>
+        Sealed URL lifetime (days, 0 = no expiry)
+        <input name="ttlDays" type="number" min="0" value="0">
+      </label>
+
+      <button type="submit">Create subscription URL</button>
+    </form>
+
+    <section id="result" hidden>
+      <h2>Subscription URL</h2>
+      <div class="urlbox">
+        <input id="url" type="text" readonly>
+        <button id="copy" type="button">Copy</button>
+      </div>
+      <p class="hint">Paste this into your calendar app's "subscribe to calendar" / "add by URL" option.</p>
+    </section>
+
+    <p id="error" class="error" hidden></p>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

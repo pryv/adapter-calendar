@@ -8,7 +8,7 @@ import { randomBytes } from 'node:crypto';
 
 import { handleFeed } from '../src/feed/handler.ts';
 import { encodePlaintext, encodeSealed } from '../src/feed/envelope.ts';
-import type { PryvClientFactory, PryvEvent } from '../src/pryv/types.ts';
+import type { PryvReaderFactory, PryvEvent } from '../src/pryv/types.ts';
 
 const TARGET = { apiEndpoint: 'https://token@user.pryv.me/', mappingId: 'm1' };
 const KEY = randomBytes(32);
@@ -17,7 +17,7 @@ const EVENTS: PryvEvent[] = [
   { id: 'e1', streamIds: ['body'], type: 'mass/kg', time: 1_750_000_000, content: 82.4, modified: 1_750_000_000 }
 ];
 
-const goodClient: PryvClientFactory = () => ({
+const goodClient: PryvReaderFactory = () => ({
   async getMapping () {
     return { name: 'My weight', source: { streams: ['body'], types: ['mass/kg'] }, target: { summary: '{content} kg' } };
   },
@@ -26,7 +26,7 @@ const goodClient: PryvClientFactory = () => ({
   }
 });
 
-const failingClient: PryvClientFactory = () => ({
+const failingClient: PryvReaderFactory = () => ({
   async getMapping () { throw new Error('boom'); },
   async getEvents () { return []; }
 });

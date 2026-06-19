@@ -25,9 +25,10 @@ typecheck:
 test *params:
     node --test {{params}} test/*.test.ts
 
-# Compile TypeScript sources to dist/
+# Compile TypeScript sources to dist/ and copy static UI assets
 build:
     tsc -p tsconfig.build.json
+    cp -R src/ui/assets dist/ui/
 
 # Run the feed server from source (Node strips types natively)
 start *params:

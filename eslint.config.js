@@ -11,7 +11,7 @@ import globals from 'globals';
 
 export default [
   {
-    ignores: ['node_modules/**', 'dist/**', 'coverage/**', '**/*.d.ts']
+    ignores: ['node_modules/**', 'dist/**', 'coverage/**', '**/*.d.ts', 'src/ui/assets/**']
   },
 
   ...neostandard({ semi: true, noStyle: false }),

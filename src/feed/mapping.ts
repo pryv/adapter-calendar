@@ -40,13 +40,24 @@ export interface Mapping {
   target?: MappingTarget;
 }
 
-/** Validate that an unknown value (mapping-config event content) is a Mapping. */
+/**
+ * Validate that mapping-config event content is a Mapping. Accepts either an
+ * object or a JSON string (mappings are stored as a `note/txt` JSON string).
+ */
 export function parseMapping (raw: unknown): Mapping {
-  if (raw == null || typeof raw !== 'object') {
+  let value = raw;
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      throw new Error('mapping content is not valid JSON');
+    }
+  }
+  if (value == null || typeof value !== 'object') {
     throw new Error('mapping content must be an object');
   }
   // Structural pass-through: unknown fields are ignored, the shape is optional.
-  return raw as Mapping;
+  return value as Mapping;
 }
 
 /** Render content as a string: primitives directly, objects as JSON. */
