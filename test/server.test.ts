@@ -72,6 +72,19 @@ test('a malformed envelope returns 400', async () => {
   });
 });
 
+test('serves the adapter manifest at /manifest.json', async () => {
+  await withServer(async (port) => {
+    const res = await fetch(`http://localhost:${port}/manifest.json`);
+    assert.equal(res.status, 200);
+    assert.match(res.headers.get('content-type') ?? '', /application\/json/);
+    const manifest = await res.json() as { name: string; type: string; auth: string[]; standards: string[] };
+    assert.equal(manifest.name, 'calendar');
+    assert.equal(manifest.type, 'calendar');
+    assert.deepEqual(manifest.auth, ['plaintext', 'sealed']);
+    assert.ok(manifest.standards.includes('RFC5545'));
+  });
+});
+
 test('serves the UI at /', async () => {
   await withServer(async (port) => {
     const res = await fetch(`http://localhost:${port}/`);

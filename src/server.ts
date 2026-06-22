@@ -21,6 +21,7 @@ import process, { argv, env } from 'node:process';
 import { handleFeed, type FeedConfig } from './feed/handler.ts';
 import { keyFromBase64 } from './feed/envelope.ts';
 import { handleCreateMapping, parseCreateMappingInput, UiRequestError } from './ui/handler.ts';
+import { buildManifest } from './manifest.ts';
 import type { PryvClientFactory } from './pryv/types.ts';
 
 const ICS_SUFFIX = '.ics';
@@ -113,6 +114,9 @@ async function route (
     }
 
     if (req.method === 'GET') {
+      if (path === '/manifest.json') {
+        return send(res, 200, 'application/json; charset=utf-8', JSON.stringify(buildManifest()));
+      }
       if (path.startsWith(feedPrefix) && path.endsWith(ICS_SUFFIX)) {
         const envelope = decodeURIComponent(path.slice(feedPrefix.length, -ICS_SUFFIX.length));
         if (envelope.length === 0) return send(res, 404, TEXT, 'not found');
