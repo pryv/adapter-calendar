@@ -29,6 +29,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json && cp -R src/ui/assets dist/ui/",
+    "ingest": "node src/ingest/cli.ts",
     "license": "source-licenser --config-file .licenser.yml ./",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

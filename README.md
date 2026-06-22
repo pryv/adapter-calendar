@@ -67,6 +67,25 @@ The `<envelope>` segment carries the user's Pryv apiEndpoint and mapping id (pla
 or sealed AES-256-GCM). Every subscription URL is kept under Google Calendar's ~225-char
 limit — see [docs/url-length-constraints.md](docs/url-length-constraints.md).
 
+### Ingesting an external calendar
+
+`just ingest` fetches an external iCalendar URL and writes its events into a Pryv
+account as `calendar/ical-event` events. It is a one-shot designed to run on a
+schedule (cron); re-running is idempotent (events are de-duplicated by VEVENT
+`UID` within the target stream).
+
+```sh
+just ingest --api-endpoint https://TOKEN@user.host/ \
+            --url https://example.com/calendar.ics \
+            --stream calendar-ingest
+```
+
+Each event keeps the well-known fields in structured `content` (queryable) and the
+verbatim `VEVENT` in `clientData._raw`. Note: only UTC (`...Z`) and all-day
+(`VALUE=DATE`) times are resolved exactly; `TZID`/floating local times are taken
+as the wall-clock instant in UTC and flagged in `clientData` (full time-zone
+resolution is a later enhancement).
+
 See [AGENTS.md](AGENTS.md) for the full conventions.
 
 ## License

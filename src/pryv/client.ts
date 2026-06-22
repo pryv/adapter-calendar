@@ -10,7 +10,7 @@
  * the interface in `types.ts`, so they remain unit-testable without a network.
  */
 import pryv from 'pryv';
-import type { PryvClient, EventsQuery, PryvEvent } from './types.ts';
+import type { PryvClient, EventsQuery, PryvEvent, NewEvent } from './types.ts';
 
 const { Connection } = pryv;
 
@@ -23,7 +23,23 @@ export const MAPPING_EVENT_TYPE = 'note/txt';
 /** Build a PryvClient for a single apiEndpoint. */
 export function createPryvClient (apiEndpoint: string): PryvClient {
   const connection = new Connection(apiEndpoint);
+
+  async function ensureStream (streamId: string, name: string): Promise<void> {
+    const res = await connection.post('streams', { id: streamId, name }) as { error?: { id?: string } };
+    if (res?.error != null && res.error.id !== 'item-already-exists') {
+      throw new Error('failed to create stream: ' + JSON.stringify(res.error));
+    }
+  }
+
+  async function createEvent (event: NewEvent): Promise<{ id: string }> {
+    const body = await connection.post('events', event) as { event?: { id?: string }; error?: unknown };
+    if (body?.event?.id == null) throw new Error('failed to create event: ' + JSON.stringify(body?.error));
+    return { id: body.event.id };
+  }
+
   return {
+    ensureStream,
+    createEvent,
     async getMapping (mappingId: string): Promise<unknown> {
       const body = await connection.get('events/' + encodeURIComponent(mappingId)) as { event?: { content?: unknown } };
       if (body?.event == null) throw new Error('mapping event not found');
@@ -34,18 +50,12 @@ export function createPryvClient (apiEndpoint: string): PryvClient {
       return body?.events ?? [];
     },
     async createMapping (mapping: unknown): Promise<{ id: string }> {
-      // Ensure the mappings stream exists; an existing stream is not an error.
-      const created = await connection.post('streams', { id: MAPPING_STREAM_ID, name: MAPPING_STREAM_NAME }) as { error?: { id?: string } };
-      if (created?.error != null && created.error.id !== 'item-already-exists') {
-        throw new Error('failed to create mappings stream: ' + JSON.stringify(created.error));
-      }
-      const body = await connection.post('events', {
+      await ensureStream(MAPPING_STREAM_ID, MAPPING_STREAM_NAME);
+      return createEvent({
         streamIds: [MAPPING_STREAM_ID],
         type: MAPPING_EVENT_TYPE,
         content: JSON.stringify(mapping)
-      }) as { event?: { id?: string }; error?: unknown };
-      if (body?.event?.id == null) throw new Error('failed to create mapping event: ' + JSON.stringify(body?.error));
-      return { id: body.event.id };
+      });
     }
   };
 }

@@ -51,8 +51,9 @@ an npm script, so `npm run <name>` works too.
 ## Layout
 
 ```
-src/ical/       RFC 5545 serializer (pure)
+src/ical/       RFC 5545 serializer + parser (pure)
 src/feed/       envelope codec, mapping model, feed request handler (pure/injected)
+src/ingest/     external iCal -> Pryv: mapping, handler, one-shot CLI (cli.ts)
 src/ui/         mapping-creation handler + static web UI (assets/)
 src/pryv/       Pryv client port (types.ts) + lib-js implementation (client.ts)
 src/server.ts   node:http server (feed + UI routes)

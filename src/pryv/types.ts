@@ -46,10 +46,25 @@ export interface PryvReader {
   getEvents (query: EventsQuery): Promise<PryvEvent[]>;
 }
 
-/** Write side: what the mapping-creation UI needs. */
+/** An event to create on a Pryv account. */
+export interface NewEvent {
+  streamIds: string[];
+  type: string;
+  /** Unix seconds; defaults to the server's now when omitted. */
+  time?: number;
+  duration?: number;
+  content: unknown;
+  clientData?: Record<string, unknown>;
+}
+
+/** Write side: what the mapping-creation UI and the ingest path need. */
 export interface PryvWriter {
   /** Persist a mapping config (ensuring its stream) and return the new event id. */
   createMapping (mapping: unknown): Promise<{ id: string }>;
+  /** Create the stream if absent (an existing stream is not an error). */
+  ensureStream (streamId: string, name: string): Promise<void>;
+  /** Create a single event and return its id. */
+  createEvent (event: NewEvent): Promise<{ id: string }>;
 }
 
 /** A Pryv account client (read + write). */

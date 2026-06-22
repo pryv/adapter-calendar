@@ -22,7 +22,9 @@ let lastCreated: unknown;
 const client: PryvClientFactory = () => ({
   async getMapping () { return {}; },
   async getEvents () { return []; },
-  async createMapping (mapping: unknown) { lastCreated = mapping; return { id: 'm-99' }; }
+  async createMapping (mapping: unknown) { lastCreated = mapping; return { id: 'm-99' }; },
+  async ensureStream () { /* noop */ },
+  async createEvent () { return { id: 'e-1' }; }
 });
 
 test('parseCreateMappingInput validates apiEndpoint and mapping', () => {

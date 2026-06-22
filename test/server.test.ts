@@ -16,7 +16,9 @@ const client: PryvClientFactory = () => ({
   async getEvents () {
     return [{ id: 'e1', streamIds: ['body'], type: 'mass/kg', time: 1_750_000_000, content: 82.4, modified: 1_750_000_000 }];
   },
-  async createMapping () { return { id: 'created-1' }; }
+  async createMapping () { return { id: 'created-1' }; },
+  async ensureStream () { /* noop */ },
+  async createEvent () { return { id: 'e-1' }; }
 });
 
 function listen (server: Server): Promise<number> {

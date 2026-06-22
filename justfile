@@ -34,6 +34,10 @@ build:
 start *params:
     node src/server.ts {{params}}
 
+# One-shot ingest of an external iCalendar URL into a Pryv account
+ingest *params:
+    node src/ingest/cli.ts {{params}}
+
 # Apply source license headers
 license:
     source-licenser --config-file .licenser.yml ./
