@@ -36,6 +36,20 @@ authentication tag within that budget — which rules out a standard JWT (JSON +
 base64 headers blow the budget) in favour of a compact binary envelope
 (base64url, no padding).
 
+## Measured (live)
+
+Against a real account on a `*.pryv.me` host (14-char username, 30-day expiry on
+the sealed URL):
+
+| Mode | Example length | Margin under 225 |
+|---|---|---|
+| plaintext | 148 chars | 77 |
+| sealed (AES-256-GCM) | 200 chars | 25 |
+
+The host segment is the main variable: a longer username or a longer platform
+domain eats directly into the sealed-mode margin, so very long hosts may need a
+shorter route prefix or a shortener for Google specifically.
+
 ## Implications for the URL modes
 
 - **Plaintext mode** (`feed/<apiEndpoint>/<token>/<mappingId>.ics`) only fits the
