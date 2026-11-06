@@ -9,7 +9,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
-import type { Server } from 'node:http';
+import { request as httpRequest, type Server } from 'node:http';
 
 import { createFeedServer, configFromEnv, type ServerConfig } from '../src/server.ts';
 import { buildManifest } from '../src/manifest.ts';
@@ -65,20 +65,57 @@ test('[CALB1] emitted URLs use X-Adapter-Base, ahead of the configured base', as
   });
 });
 
-test('[CALB3] no header: the configured platform base, never a label from Host', async () => {
+/** POST a mapping with a real `Host` header (fetch cannot set it). */
+function createMappingWithHost (port: number, path: string, host: string): Promise<{ status: number; url?: string }> {
+  const body = JSON.stringify({ apiEndpoint: 'https://token@user.example.com/', mapping: { source: { streams: ['body'] } } });
+  return new Promise((resolve, reject) => {
+    const req = httpRequest({
+      host: '127.0.0.1',
+      port,
+      path,
+      method: 'POST',
+      headers: { host, 'content-type': 'application/json', 'content-length': Buffer.byteLength(body) }
+    }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on('data', (c: Buffer) => chunks.push(c));
+      res.on('end', () => {
+        const status = res.statusCode ?? 0;
+        if (status !== 200) return resolve({ status });
+        resolve({ status, url: (JSON.parse(Buffer.concat(chunks).toString('utf8')) as { url: string }).url });
+      });
+    });
+    req.on('error', reject);
+    req.end(body);
+  });
+}
+
+test('[CALB3] no header: the configured platform base wins over Host; without one the origin is reflected whole', async () => {
   await withServer({ prefix: 'cal', baseUrl: PLATFORM }, async (port) => {
-    const res = await createMapping(port, '/adapter/calendar/ui/mappings', { 'x-forwarded-host': 'alice.example.com' });
+    const res = await createMappingWithHost(port, '/adapter/calendar/ui/mappings', 'alice.example.com');
     assert.equal(res.status, 200);
-    assert.match(res.url ?? '', /^https:\/\/core-a\.example\.com\/adapter\/calendar\/cal\/p.+\.ics$/);
+    assert.ok((res.url ?? '').startsWith(PLATFORM + 'cal/'), res.url);
+  });
+  await withServer({ prefix: 'cal' }, async (port) => {
+    const root = await createMappingWithHost(port, '/ui/mappings', 'alice.example.com');
+    assert.equal(root.status, 200);
+    assert.match(root.url ?? '', /^http:\/\/alice\.example\.com\/cal\/p[^/]+\.ics$/);
+    const mounted = await createMappingWithHost(port, '/adapter/calendar/ui/mappings', 'alice.example.com');
+    assert.equal(mounted.status, 405, 'nothing is served under the mount without a base');
   });
 });
 
-test('[CALB4] a malformed X-Adapter-Base is ignored', async () => {
+test('[CALB4] a malformed X-Adapter-Base, or one without X-Adapter-Name, is ignored', async () => {
   await withServer({ prefix: 'cal', baseUrl: PLATFORM }, async (port) => {
     for (const bad of ['https://alice.example.com/adapter/calendar', 'javascript:x/', 'https://alice.example.com/a/?q=1/']) {
-      const res = await createMapping(port, '/adapter/calendar/ui/mappings', { 'x-adapter-base': bad });
+      const res = await createMapping(port, '/adapter/calendar/ui/mappings', { 'x-adapter-name': 'alice', 'x-adapter-base': bad });
       assert.equal(res.status, 200, bad);
       assert.ok((res.url ?? '').startsWith(PLATFORM + 'cal/'), bad);
+    }
+    const unpaired: Array<Record<string, string>> = [{ 'x-adapter-base': BASE }, { 'x-adapter-name': 'Alice', 'x-adapter-base': BASE }];
+    for (const headers of unpaired) {
+      const res = await createMapping(port, '/adapter/calendar/ui/mappings', headers);
+      assert.equal(res.status, 200, JSON.stringify(headers));
+      assert.ok((res.url ?? '').startsWith(PLATFORM + 'cal/'), JSON.stringify(headers));
     }
   });
 });
@@ -96,6 +133,9 @@ test('[CALB5] routes are served under the mount path of X-Adapter-Base', async (
     const ui = await fetch(`http://localhost:${port}/adapter/calendar/`, { headers });
     assert.equal(ui.status, 200);
     assert.match(ui.headers.get('content-type') ?? '', /text\/html/);
+    const slashless = await fetch(`http://localhost:${port}/adapter/calendar`, { headers, redirect: 'manual' });
+    assert.equal(slashless.status, 308);
+    assert.equal(slashless.headers.get('location'), '/adapter/calendar/');
   });
 });
 

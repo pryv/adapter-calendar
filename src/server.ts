@@ -13,9 +13,10 @@
  * and UI handlers. The Pryv client factory is injected so routing is testable
  * without a network.
  *
- * Behind a Pryv core the routes live under the mount path (`/adapter/calendar/`),
- * and a request addressed to an account carries `X-Adapter-Base`: the links the
- * UI emits are then that account's own address.
+ * Behind a Pryv core the routes live under the mount path (`/adapter/calendar/`;
+ * the slashless form answers 308 to it), and a request addressed to an account
+ * carries `X-Adapter-Base`: the links the UI emits are then that account's own
+ * address.
  */
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -46,7 +47,7 @@ export interface ServerConfig extends FeedConfig {
   prefix: string;
   /**
    * Externally reachable base URL at a platform address (e.g. `https://core.example.com/adapter/calendar/`);
-   * its path is the mount path. `X-Adapter-Base` takes precedence; derived from the request when unset.
+   * its path is the mount path. `X-Adapter-Base` takes precedence; the request's own origin when unset.
    */
   baseUrl?: string;
   /** The adapter's base in the platform's `{username}` template form, published in the manifest. */
@@ -81,11 +82,15 @@ async function readJsonBody (req: IncomingMessage): Promise<unknown> {
 /**
  * The account's base URL a Pryv core sets on a request addressed to an account
  * (`X-Adapter-Base`, e.g. `https://alice.example.com/adapter/calendar/`), or null
- * at a platform address. An address, not an identity: the feed's envelope carries
- * the credentials. Trusted because the adapter is reached through the core only,
- * which drops client-sent copies.
+ * at a platform address. The core sets it together with `X-Adapter-Name`; the pair
+ * is read as a pair (a base without a valid name is absent), like the reference
+ * reader of the adapter contract. An address, not an identity: the feed's envelope
+ * carries the credentials. Trusted because the adapter is reached through the core
+ * only, which drops client-sent copies.
  */
 function adapterBaseOf (req: IncomingMessage): string | null {
+  const name = req.headers['x-adapter-name'];
+  if (typeof name !== 'string' || !/^[a-z0-9-]+$/.test(name)) return null;
   const value = req.headers['x-adapter-base'];
   if (typeof value !== 'string' || !value.endsWith('/') || /[\s,]/.test(value)) return null;
   try {
@@ -98,7 +103,11 @@ function adapterBaseOf (req: IncomingMessage): string | null {
   return value;
 }
 
-/** Base URL for emitted links: the addressed account's base, else the configured one, else the request host. */
+/**
+ * Base URL for emitted links: the addressed account's base, else the configured one,
+ * else the request's own origin (a bare deployment). The origin is reflected whole,
+ * never read as an account: a feed URL carries its own credentials.
+ */
 function baseUrlFor (req: IncomingMessage, config: ServerConfig): string {
   const adapterBase = adapterBaseOf(req);
   if (adapterBase != null) return adapterBase;
@@ -112,6 +121,8 @@ function baseUrlFor (req: IncomingMessage, config: ServerConfig): string {
  * The path the adapter is mounted under behind a core (`/adapter/calendar/`): the
  * path of `X-Adapter-Base`, else of the configured base URL, else `/`. The core
  * forwards the path as the client sent it, so this prefix is removed before routing.
+ * `X-Adapter-Base` is the route root on every prefix: a route declared under another
+ * prefix (e.g. `/.well-known/<label>/adapter/calendar/`) is not stripped by this.
  */
 function mountPathFor (req: IncomingMessage, config: ServerConfig): string {
   const base = adapterBaseOf(req) ?? config.baseUrl;
@@ -159,6 +170,13 @@ async function route (
   try {
     const fullPath = new URL(req.url ?? '/', 'http://localhost').pathname;
     const mount = mountPathFor(req, config);
+    if (mount !== '/' && fullPath === mount.slice(0, -1)) {
+      // The UI's assets are relative: send the slashless mount to its slashed form
+      // (path only, nothing taken from the request's host).
+      res.writeHead(308, { location: mount, 'content-type': TEXT });
+      res.end('moved permanently');
+      return;
+    }
     const path = mount !== '/' && fullPath.startsWith(mount) ? fullPath.slice(mount.length - 1) : fullPath;
 
     if (req.method === 'POST' && path === '/ui/mappings') {

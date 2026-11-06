@@ -58,7 +58,7 @@ Configuration is read from the environment:
 | `PORT` | `3010` | TCP port to listen on |
 | `ROUTE_PREFIX` | `cal` | first path segment, e.g. `/cal/<envelope>.ics` |
 | `AES_KEY_BASE64` | — | base64 of a 32-byte key; required to serve sealed (`s`) URLs |
-| `PUBLIC_BASE_URL` | request host | base URL used when emitting subscription URLs at a platform address; its path is the mount path (e.g. `https://core.example.com/adapter/calendar/`) |
+| `PUBLIC_BASE_URL` | the request's own origin (a bare deployment: `X-Forwarded-Proto`, else `http`, plus `Host`) | base URL used when emitting subscription URLs at a platform address; its path is the mount path. Behind a core, set it to the platform address with the mount path (`https://<core host>/adapter/calendar/`); without it, only requests addressed to an account reach the routes |
 | `PUBLIC_BASE_TEMPLATE` | (unset) | the adapter's base in the platform's `{username}` template form (e.g. `https://{username}.example.com/adapter/calendar/`), published as `baseTemplate` in the manifest |
 
 ### Behind a Pryv core: addressed by username
@@ -69,9 +69,14 @@ the path as sent and, on a request addressed to an account, sets `X-Adapter-Base
 (`https://alice.example.com/adapter/calendar/`):
 
 - the routes above are served under the path of `X-Adapter-Base`, else under the path of
-  `PUBLIC_BASE_URL` (and still at the root);
+  `PUBLIC_BASE_URL` (and still at the root); `/adapter/calendar` without its final `/`
+  answers `308` to `/adapter/calendar/`;
 - emitted subscription URLs start with `X-Adapter-Base` when present, else `PUBLIC_BASE_URL`,
-  else the request host.
+  else the request's own origin (a bare deployment).
+
+Behind a core, set `PUBLIC_BASE_URL` (`https://<core host>/adapter/calendar/`): a request
+at a platform address carries no `X-Adapter-Base`, so without it the mount path is unknown
+and those requests answer `404` / `405`.
 
 The header is an address, not an identity (the envelope carries the credentials). Reach
 the adapter through the core only (do not publish its port), behind a core release that

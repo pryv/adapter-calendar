@@ -19,8 +19,9 @@ Initial development release. Stack: TypeScript, Node.js ≥ 24, pure ESM.
 - **Addressed by username behind a Pryv core:** emitted subscription URLs use
   the `X-Adapter-Base` header the core sets on a request addressed to an account
   (`https://alice.example.com/adapter/calendar/`), else `PUBLIC_BASE_URL`, else
-  the request host; routes are served under the mount path of that base (and
-  still at the root). The UI posts to a relative `ui/mappings`.
+  the request's own origin (a bare deployment); routes are served under the
+  mount path of that base (and still at the root), the slashless mount answers
+  `308` to the slashed form. The UI posts to a relative `ui/mappings`.
 
 See [TODOS.md](TODOS.md) for deferred work (CalDAV write-back, full time-zone
 resolution, recurrence expansion, multi-tenant deployment).
