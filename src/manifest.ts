@@ -32,11 +32,19 @@ export interface AdapterManifest {
   auth: string[];
   /** External standards the adapter speaks. */
   standards: string[];
+  /** The adapter's base in the platform's `{username}` template form, when configured. */
+  baseTemplate?: string;
+}
+
+/** Deployment-specific manifest members. */
+export interface ManifestOptions {
+  /** e.g. `https://{username}.example.com/adapter/calendar/` (from `PUBLIC_BASE_TEMPLATE`). */
+  baseTemplate?: string;
 }
 
 /** Build the current adapter manifest. */
-export function buildManifest (): AdapterManifest {
-  return {
+export function buildManifest (options: ManifestOptions = {}): AdapterManifest {
+  const manifest: AdapterManifest = {
     name: 'calendar',
     type: 'calendar',
     version,
@@ -47,4 +55,6 @@ export function buildManifest (): AdapterManifest {
     auth: ['plaintext', 'sealed'],
     standards: ['RFC5545']
   };
+  if (options.baseTemplate != null && options.baseTemplate.length > 0) manifest.baseTemplate = options.baseTemplate;
+  return manifest;
 }

@@ -55,7 +55,8 @@ form.addEventListener('submit', async (event) => {
   result.hidden = true;
 
   try {
-    const res = await fetch('/ui/mappings', {
+    // Relative: the UI may be served under a mount path (`/adapter/calendar/`).
+    const res = await fetch('ui/mappings', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(buildPayload())

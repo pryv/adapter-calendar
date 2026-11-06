@@ -14,7 +14,13 @@ Initial development release. Stack: TypeScript, Node.js ≥ 24, pure ESM.
   in structured `content`, the verbatim VEVENT in `clientData._raw`. Idempotent
   by VEVENT `UID`.
 - **Self-description:** serves `GET /manifest.json`; advertised by a Pryv core's
-  `/service/info` `adapters` field.
+  `/service/info` `adapters` field. The manifest carries `baseTemplate` when
+  `PUBLIC_BASE_TEMPLATE` is set.
+- **Addressed by username behind a Pryv core:** emitted subscription URLs use
+  the `X-Adapter-Base` header the core sets on a request addressed to an account
+  (`https://alice.example.com/adapter/calendar/`), else `PUBLIC_BASE_URL`, else
+  the request host; routes are served under the mount path of that base (and
+  still at the root). The UI posts to a relative `ui/mappings`.
 
 See [TODOS.md](TODOS.md) for deferred work (CalDAV write-back, full time-zone
 resolution, recurrence expansion, multi-tenant deployment).

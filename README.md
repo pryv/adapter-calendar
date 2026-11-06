@@ -58,7 +58,25 @@ Configuration is read from the environment:
 | `PORT` | `3010` | TCP port to listen on |
 | `ROUTE_PREFIX` | `cal` | first path segment, e.g. `/cal/<envelope>.ics` |
 | `AES_KEY_BASE64` | — | base64 of a 32-byte key; required to serve sealed (`s`) URLs |
-| `PUBLIC_BASE_URL` | request host | base URL used when emitting subscription URLs |
+| `PUBLIC_BASE_URL` | request host | base URL used when emitting subscription URLs at a platform address; its path is the mount path (e.g. `https://core.example.com/adapter/calendar/`) |
+| `PUBLIC_BASE_TEMPLATE` | (unset) | the adapter's base in the platform's `{username}` template form (e.g. `https://{username}.example.com/adapter/calendar/`), published as `baseTemplate` in the manifest |
+
+### Behind a Pryv core: addressed by username
+
+Deployed as a sidecar behind a Pryv core (`adapterRoutes`), the adapter is reached at the
+account's own address, `https://alice.example.com/adapter/calendar/`. The core forwards
+the path as sent and, on a request addressed to an account, sets `X-Adapter-Base`
+(`https://alice.example.com/adapter/calendar/`):
+
+- the routes above are served under the path of `X-Adapter-Base`, else under the path of
+  `PUBLIC_BASE_URL` (and still at the root);
+- emitted subscription URLs start with `X-Adapter-Base` when present, else `PUBLIC_BASE_URL`,
+  else the request host.
+
+The header is an address, not an identity (the envelope carries the credentials). Reach
+the adapter through the core only (do not publish its port), behind a core release that
+drops client-sent `X-Adapter-*` headers. See the
+[adapter contract](https://github.com/pryv/adapter-template-and-docs/blob/master/CONTRACT.md#8-addressed-by-username-never-by-core).
 
 The browser only talks to this server; the server talks to Pryv. The user's apiEndpoint
 (with its token) stays server-side — only the encoded subscription URL is handed back.
