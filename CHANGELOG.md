@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.0.1 — unreleased
+## 0.1.0 - 2026-11-06
 
 Initial development release. Stack: TypeScript, Node.js ≥ 24, pure ESM.
 

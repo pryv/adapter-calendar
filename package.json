@@ -1,6 +1,6 @@
 {
   "name": "@pryv/adapter-calendar",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Calendar adapter for Pryv.io accounts — iCal subscription feed and external calendar ingest.",
   "homepage": "https://github.com/pryv/adapter-calendar",
   "bugs": {
