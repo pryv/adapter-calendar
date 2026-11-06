@@ -12,6 +12,11 @@
  * The server is thin: it parses routes, reads bodies, and delegates to the feed
  * and UI handlers. The Pryv client factory is injected so routing is testable
  * without a network.
+ *
+ * Behind a Pryv core the routes live under the mount path (`/adapter/calendar/`;
+ * the slashless form answers 308 to it), and a request addressed to an account
+ * carries `X-Adapter-Base`: the links the UI emits are then that account's own
+ * address.
  */
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -40,9 +45,16 @@ const STATIC_FILES: Record<string, { file: string; type: string }> = {
 export interface ServerConfig extends FeedConfig {
   /** Route prefix, e.g. `cal` serves `/cal/<envelope>.ics`. */
   prefix: string;
-  /** Externally reachable base URL for emitted subscription URLs; derived from the request when unset. */
+  /**
+   * Externally reachable base URL at a platform address (e.g. `https://core.example.com/adapter/calendar/`);
+   * its path is the mount path. `X-Adapter-Base` takes precedence; the request's own origin when unset.
+   */
   baseUrl?: string;
+  /** The adapter's base in the platform's `{username}` template form, published in the manifest. */
+  baseTemplate?: string;
 }
+
+const BASE_TEMPLATE_RE = /^https?:\/\/\S*\{username\}\S*\/$/;
 
 function send (res: ServerResponse, status: number, type: string, body: string): void {
   res.writeHead(status, { 'content-type': type });
@@ -67,11 +79,60 @@ async function readJsonBody (req: IncomingMessage): Promise<unknown> {
   }
 }
 
+/**
+ * The account's base URL a Pryv core sets on a request addressed to an account
+ * (`X-Adapter-Base`, e.g. `https://alice.example.com/adapter/calendar/`), or null
+ * at a platform address. The core sets it together with `X-Adapter-Name`; the pair
+ * is read as a pair (a base without a valid name is absent), like the reference
+ * reader of the adapter contract. An address, not an identity: the feed's envelope
+ * carries the credentials. Trusted because the adapter is reached through the core
+ * only, which drops client-sent copies.
+ */
+function adapterBaseOf (req: IncomingMessage): string | null {
+  const name = req.headers['x-adapter-name'];
+  if (typeof name !== 'string' || !/^[a-z0-9-]+$/.test(name)) return null;
+  const value = req.headers['x-adapter-base'];
+  if (typeof value !== 'string' || !value.endsWith('/') || /[\s,]/.test(value)) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
+    if (url.search !== '' || url.hash !== '' || url.username !== '' || url.password !== '') return null;
+  } catch {
+    return null;
+  }
+  return value;
+}
+
+/**
+ * Base URL for emitted links: the addressed account's base, else the configured one,
+ * else the request's own origin (a bare deployment). The origin is reflected whole,
+ * never read as an account: a feed URL carries its own credentials.
+ */
 function baseUrlFor (req: IncomingMessage, config: ServerConfig): string {
+  const adapterBase = adapterBaseOf(req);
+  if (adapterBase != null) return adapterBase;
   if (config.baseUrl != null && config.baseUrl.length > 0) return config.baseUrl;
   const proto = (req.headers['x-forwarded-proto'] as string | undefined) ?? 'http';
   const host = req.headers.host ?? 'localhost';
   return `${proto}://${host}`;
+}
+
+/**
+ * The path the adapter is mounted under behind a core (`/adapter/calendar/`): the
+ * path of `X-Adapter-Base`, else of the configured base URL, else `/`. The core
+ * forwards the path as the client sent it, so this prefix is removed before routing.
+ * `X-Adapter-Base` is the route root on every prefix: a route declared under another
+ * prefix (e.g. `/.well-known/<label>/adapter/calendar/`) is not stripped by this.
+ */
+function mountPathFor (req: IncomingMessage, config: ServerConfig): string {
+  const base = adapterBaseOf(req) ?? config.baseUrl;
+  if (base == null || base.length === 0) return '/';
+  try {
+    const path = new URL(base).pathname;
+    return path.endsWith('/') ? path : path + '/';
+  } catch {
+    return '/';
+  }
 }
 
 async function serveStatic (res: ServerResponse, entry: { file: string; type: string }): Promise<void> {
@@ -107,7 +168,16 @@ async function route (
   makeClient: PryvClientFactory
 ): Promise<void> {
   try {
-    const path = new URL(req.url ?? '/', 'http://localhost').pathname;
+    const fullPath = new URL(req.url ?? '/', 'http://localhost').pathname;
+    const mount = mountPathFor(req, config);
+    if (mount !== '/' && fullPath === mount.slice(0, -1)) {
+      // The UI's assets are relative: send the slashless mount to its slashed form
+      // (path only, nothing taken from the request's host).
+      res.writeHead(308, { location: mount, 'content-type': TEXT });
+      res.end('moved permanently');
+      return;
+    }
+    const path = mount !== '/' && fullPath.startsWith(mount) ? fullPath.slice(mount.length - 1) : fullPath;
 
     if (req.method === 'POST' && path === '/ui/mappings') {
       return await handleCreate(req, res, config, makeClient);
@@ -115,7 +185,8 @@ async function route (
 
     if (req.method === 'GET') {
       if (path === '/manifest.json') {
-        return send(res, 200, 'application/json; charset=utf-8', JSON.stringify(buildManifest()));
+        const manifest = buildManifest({ baseTemplate: config.baseTemplate });
+        return send(res, 200, 'application/json; charset=utf-8', JSON.stringify(manifest));
       }
       if (path.startsWith(feedPrefix) && path.endsWith(ICS_SUFFIX)) {
         const envelope = decodeURIComponent(path.slice(feedPrefix.length, -ICS_SUFFIX.length));
@@ -149,6 +220,12 @@ export function configFromEnv (): ServerConfig {
   }
   if (env.PUBLIC_BASE_URL != null && env.PUBLIC_BASE_URL.length > 0) {
     config.baseUrl = env.PUBLIC_BASE_URL;
+  }
+  if (env.PUBLIC_BASE_TEMPLATE != null && env.PUBLIC_BASE_TEMPLATE.length > 0) {
+    if (!BASE_TEMPLATE_RE.test(env.PUBLIC_BASE_TEMPLATE)) {
+      throw new Error('PUBLIC_BASE_TEMPLATE must be an http(s) URL holding {username} and ending with /');
+    }
+    config.baseTemplate = env.PUBLIC_BASE_TEMPLATE;
   }
   return config;
 }
